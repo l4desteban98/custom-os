@@ -34,6 +34,12 @@ if [[ ! -f "$META_DATA" ]]; then
   exit 1
 fi
 
+if [[ "$ISO_OUT" = /* ]]; then
+  ISO_OUT_ABS="$ISO_OUT"
+else
+  ISO_OUT_ABS="$PWD/$ISO_OUT"
+fi
+
 sed_inplace() {
   local expr="$1"
   local file="$2"
@@ -44,11 +50,15 @@ sed_inplace() {
   fi
 }
 
-rm -rf "$WORKDIR"
+if [[ -e "$WORKDIR" ]]; then
+  # Prior runs may leave read-only dirs from ISO extraction.
+  chmod -R u+w "$WORKDIR" 2>/dev/null || true
+  rm -rf "$WORKDIR"
+fi
 mkdir -p "$WORKDIR/iso/nocloud"
 
 echo "[*] Extracting ISO: $ISO_IN"
-xorriso -osirrox on -indev "$ISO_IN" -extract / "$WORKDIR/iso" >/dev/null 2>&1
+xorriso -osirrox on -indev "$ISO_IN" -extract / "$WORKDIR/iso"
 
 # ISOs are often extracted with read-only permissions; make tree writable
 # so we can patch boot config files in place.
@@ -74,12 +84,16 @@ if [[ -f "$WORKDIR/iso/md5sum.txt" ]]; then
 fi
 
 echo "[*] Building output ISO: $ISO_OUT"
+if [[ -e "$ISO_OUT" ]]; then
+  chmod u+w "$ISO_OUT" 2>/dev/null || true
+  rm -f "$ISO_OUT"
+fi
+
 xorriso \
   -indev "$ISO_IN" \
   -outdev "$ISO_OUT" \
   -map "$WORKDIR/iso" / \
   -boot_image any replay \
-  -volid "UBUNTU_LERIX_AUTOINSTALL" \
-  >/dev/null 2>&1
+  -volid "UBUNTU_LERIX_AUTOINSTALL"
 
-echo "[OK] ISO created: $ISO_OUT"
+echo "[OK] ISO created: $ISO_OUT_ABS"
