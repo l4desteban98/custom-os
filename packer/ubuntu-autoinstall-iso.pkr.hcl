@@ -1,11 +1,4 @@
-packer {
-  required_plugins {
-    null = {
-      source  = "github.com/hashicorp/null"
-      version = ">= 1.0.0"
-    }
-  }
-}
+packer {}
 
 variable "source_iso" {
   type = string

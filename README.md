@@ -44,7 +44,6 @@ bash scripts/build-autoinstall-iso.sh /ruta/a/ubuntu-live-server.iso ubuntu-leri
 ## Build con packer
 ```bash
 cd /Users/lerix/Projects/sandbox/custom-os/packer
-packer init .
 packer build -var 'source_iso=/ruta/a/ubuntu-live-server.iso' .
 ```
 
