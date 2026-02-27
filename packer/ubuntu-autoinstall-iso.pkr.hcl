@@ -27,6 +27,6 @@ build {
   sources = ["source.null.autoinstall_iso"]
 
   provisioner "shell-local" {
-    command = "bash ${path.root}/../scripts/build-autoinstall-iso.sh '${var.source_iso}' '${var.output_iso}' '${var.user_data}' '${var.meta_data}'"
+    command = "cd ${path.root}/.. && bash scripts/build-autoinstall-iso.sh '${var.source_iso}' '${var.output_iso}' '${var.user_data}' '${var.meta_data}'"
   }
 }
