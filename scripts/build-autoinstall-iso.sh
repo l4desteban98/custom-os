@@ -75,6 +75,13 @@ for cfg in "$WORKDIR/iso/boot/grub/grub.cfg" "$WORKDIR/iso/isolinux/txt.cfg"; do
   fi
 done
 
+# Workaround for xorriso <= 1.5.6 replay bug with Ubuntu ISOs:
+# replacing eltorito.img can yield invalid hybrid boot metadata.
+# Keeping the original boot image from indev avoids broken USB boot.
+if [[ -f "$WORKDIR/iso/boot/grub/i386-pc/eltorito.img" ]]; then
+  rm -f "$WORKDIR/iso/boot/grub/i386-pc/eltorito.img"
+fi
+
 if [[ -f "$WORKDIR/iso/md5sum.txt" ]]; then
   echo "[*] Rebuilding md5sum.txt"
   (
@@ -100,7 +107,7 @@ build_iso() {
 }
 
 if ! build_iso replay; then
-  echo "[!] xorriso replay failed; retrying with 'keep' boot mode"
+  echo "[!] xorriso replay failed; retrying with 'keep' boot mode (may not be USB-bootable on some firmware)"
   rm -f "$ISO_OUT"
   build_iso keep
 fi
