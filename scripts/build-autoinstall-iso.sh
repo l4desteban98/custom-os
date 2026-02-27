@@ -50,6 +50,10 @@ mkdir -p "$WORKDIR/iso/nocloud"
 echo "[*] Extracting ISO: $ISO_IN"
 xorriso -osirrox on -indev "$ISO_IN" -extract / "$WORKDIR/iso" >/dev/null 2>&1
 
+# ISOs are often extracted with read-only permissions; make tree writable
+# so we can patch boot config files in place.
+chmod -R u+w "$WORKDIR/iso"
+
 echo "[*] Injecting NoCloud seed"
 cp "$USER_DATA" "$WORKDIR/iso/nocloud/user-data"
 cp "$META_DATA" "$WORKDIR/iso/nocloud/meta-data"
