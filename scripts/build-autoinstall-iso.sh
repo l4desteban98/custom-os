@@ -67,6 +67,11 @@ chmod -R u+w "$WORKDIR/iso"
 echo "[*] Injecting NoCloud seed"
 cp "$USER_DATA" "$WORKDIR/iso/nocloud/user-data"
 cp "$META_DATA" "$WORKDIR/iso/nocloud/meta-data"
+if [[ -d "os" ]]; then
+  echo "[*] Injecting optional os/ payload"
+  rm -rf "$WORKDIR/iso/nocloud/os"
+  cp -a "os" "$WORKDIR/iso/nocloud/os"
+fi
 
 for cfg in "$WORKDIR/iso/boot/grub/grub.cfg" "$WORKDIR/iso/isolinux/txt.cfg"; do
   if [[ -f "$cfg" ]]; then

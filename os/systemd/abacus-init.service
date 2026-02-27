@@ -1,0 +1,15 @@
+[Unit]
+Description=Abacus First-Boot Initialization
+After=network-online.target
+Wants=network-online.target
+ConditionPathExists=!/etc/abacus-appliance/.initialized
+
+[Service]
+Type=oneshot
+ExecStart=/bin/bash -lc "set -euo pipefail; mkdir -p /etc/abacus-appliance/tls /var/lib/abacus-llm; chmod 700 /etc/abacus-appliance; if [ ! -f /etc/abacus-appliance/tls/device.key ]; then openssl req -x509 -nodes -newkey rsa:4096 -keyout /etc/abacus-appliance/tls/device.key -out /etc/abacus-appliance/tls/device.crt -subj '/CN=abacus-llm.local' -days 3650; fi; chmod 600 /etc/abacus-appliance/tls/device.key; chmod 644 /etc/abacus-appliance/tls/device.crt; if [ ! -f /etc/abacus-appliance/secrets.env ]; then printf 'ABACUS_API_KEY=change-me\n' > /etc/abacus-appliance/secrets.env; chmod 600 /etc/abacus-appliance/secrets.env; fi; touch /etc/abacus-appliance/.initialized"
+RemainAfterExit=yes
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

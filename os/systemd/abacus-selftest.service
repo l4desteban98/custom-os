@@ -1,0 +1,14 @@
+[Unit]
+Description=Abacus Self-Test
+After=abacus-init.service
+Before=abacus-stack.service
+Requires=abacus-init.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 /opt/abacus-appliance/scripts/selftest.py
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

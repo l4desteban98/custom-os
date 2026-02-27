@@ -1,0 +1,18 @@
+[Unit]
+Description=Abacus Application Stack
+After=network-online.target docker.service abacus-selftest.service
+Wants=network-online.target
+Requires=docker.service abacus-selftest.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/abacus-appliance
+ExecStart=/usr/bin/docker compose -f /opt/abacus-appliance/docker-compose.prod.yml up -d
+ExecStop=/usr/bin/docker compose -f /opt/abacus-appliance/docker-compose.prod.yml down
+RemainAfterExit=yes
+TimeoutStartSec=0
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

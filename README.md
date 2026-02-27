@@ -6,17 +6,10 @@ Este proyecto crea una ISO autoinstall de Ubuntu Server que:
 - instala y habilita Docker
 - detecta NVIDIA en post-install e intenta instalar drivers con `ubuntu-drivers`
 - muestra en cada login un mensaje con estado de NVIDIA y Docker
+- si existe `os/scripts/motd.py`, lo instala y lo usa como MOTD en login
 
-## Sobre el error que viste en físico
-Esta configuración evita `path: /dev/sda` y usa `match` en storage (`ssd: true`, `size: largest`) para no romper cuando el disco cambia a `nvme0n1` u otro nombre.
-
-## Particiones incluidas
-- `EFI`: 512M (`/boot/efi`)
-- `root`: 60G (`/`)
-- `docker`: 60G (`/var/lib/docker`)
-- `data`: resto del disco (`/data`)
-
-Nota: pediste `60 + 60 + 100`, pero eso no cabe en un SSD de 200GB. Esta versión está ajustada para que sí instale en ese tamaño.
+## Storage
+La instalación usa `storage.layout.name: direct` para que Subiquity cree automáticamente la partición de boot correcta según el modo real (UEFI/BIOS) del equipo.
 
 ## Requisitos
 - `xorriso`
@@ -65,3 +58,25 @@ En cada login interactivo verás:
 
 ## MAAS
 Si luego quieres usar MAAS, reutiliza el mismo `autoinstall/user-data.yaml` como base de cloud-init/autoinstall y mantén el mismo bloque `storage` para evitar el problema de `matched no disk`.
+
+## HCL (packer legacy) para copiar `os/`
+Si tienes un template packer con builder `qemu` + communicator SSH, usa rutas con `${path.root}`:
+
+```hcl
+provisioner "file" {
+  source      = "${path.root}/../os/"
+  destination = "/tmp/os"
+}
+
+provisioner "shell" {
+  inline = [
+    "sudo mkdir -p /opt/abacus-appliance/scripts",
+    "sudo cp /tmp/os/scripts/motd.py /opt/abacus-appliance/scripts/motd.py",
+    "sudo chmod 0755 /opt/abacus-appliance/scripts/motd.py",
+    "printf '%s\\n' '#!/usr/bin/env bash' 'test -t 1 || exit 0' '/usr/bin/python3 /opt/abacus-appliance/scripts/motd.py || true' | sudo tee /etc/profile.d/00-abacus-motd.sh >/dev/null",
+    "sudo chmod 0755 /etc/profile.d/00-abacus-motd.sh"
+  ]
+}
+```
+
+Nota: esto no aplica a `source \"null\"` con `communicator = \"none\"`; ahí solo corre `shell-local`.

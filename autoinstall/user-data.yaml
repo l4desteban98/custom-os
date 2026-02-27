@@ -24,12 +24,19 @@ autoinstall:
       name: direct
 
   late-commands:
+    - mkdir -p /target/opt/abacus-appliance/scripts
+    - if [ -f /cdrom/nocloud/os/scripts/motd.py ]; then cp /cdrom/nocloud/os/scripts/motd.py /target/opt/abacus-appliance/scripts/motd.py; chmod 0755 /target/opt/abacus-appliance/scripts/motd.py; fi
     - curtin in-target -- bash -lc 'set -eux; systemctl enable docker.service containerd.service; systemctl restart docker.service'
     - curtin in-target -- bash -lc 'set -eux; if lspci | grep -qi nvidia; then ubuntu-drivers install; fi'
     - |
       cat > /target/etc/profile.d/90-gpu-docker-info.sh <<'SCRIPT'
       #!/usr/bin/env bash
       [ -t 1 ] || return 0
+
+      if [ -x /opt/abacus-appliance/scripts/motd.py ]; then
+        /usr/bin/python3 /opt/abacus-appliance/scripts/motd.py || true
+        return 0
+      fi
 
       if command -v nvidia-smi >/dev/null 2>&1 && nvidia-smi -L >/dev/null 2>&1; then
         gpu_msg="NVIDIA GPU detected"
