@@ -89,11 +89,20 @@ if [[ -e "$ISO_OUT" ]]; then
   rm -f "$ISO_OUT"
 fi
 
-xorriso \
-  -indev "$ISO_IN" \
-  -outdev "$ISO_OUT" \
-  -map "$WORKDIR/iso" / \
-  -boot_image any replay \
-  -volid "UBUNTU_LERIX_AUTOINSTALL"
+build_iso() {
+  local boot_mode="$1"
+  xorriso \
+    -indev "$ISO_IN" \
+    -outdev "$ISO_OUT" \
+    -map "$WORKDIR/iso" / \
+    -boot_image any "$boot_mode" \
+    -volid "UBUNTU_LERIX_AUTOINSTALL"
+}
+
+if ! build_iso replay; then
+  echo "[!] xorriso replay failed; retrying with 'keep' boot mode"
+  rm -f "$ISO_OUT"
+  build_iso keep
+fi
 
 echo "[OK] ISO created: $ISO_OUT_ABS"
