@@ -1,7 +1,8 @@
 packer {}
 
 variable "source_iso" {
-  type = string
+  type    = string
+  default = "ubuntu.iso"
 }
 
 variable "output_iso" {
