@@ -28,6 +28,6 @@ build {
   sources = ["source.null.autoinstall_iso"]
 
   provisioner "shell-local" {
-    command = "cd ${path.root}/.. && bash scripts/build-autoinstall-iso.sh '${var.source_iso}' '${var.output_iso}' '${var.user_data}' '${var.meta_data}'"
+    command = "cd ${path.root}/.. && bash scripts/build-autoinstall-iso.sh '${path.root}/${var.source_iso}' '${var.output_iso}' '${var.user_data}' '${var.meta_data}'"
   }
 }
