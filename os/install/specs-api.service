@@ -1,0 +1,16 @@
+[Unit]
+Description=Docker Specs API (HTTPS nginx static JSON)
+After=network-online.target docker.service
+Wants=network-online.target docker.service
+
+[Service]
+Type=simple
+ExecStartPre=/usr/local/bin/generate-specs-json.sh
+ExecStartPre=-/usr/bin/docker rm -f specs-api
+ExecStart=/usr/bin/docker run --name specs-api -p 443:443 -v /opt/abacus-appliance/specs:/usr/share/nginx/html:ro -v /opt/abacus-appliance/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro -v /opt/abacus-appliance/certs:/etc/nginx/certs:ro nginx:alpine
+ExecStop=/usr/bin/docker stop specs-api
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

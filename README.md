@@ -9,6 +9,18 @@ Este proyecto crea una ISO autoinstall de Ubuntu Server que:
 - si existe `os/scripts/motd.py`, lo instala y lo usa como MOTD en login
 - anuncia `lerix-llm.local` por mDNS (Avahi)
 - levanta un contenedor `nginx` al arranque que expone specs del host en `https://lerix-llm.local/`
+- fuerza en post-install: hostname `lerix-llm` + instalación/habilitación de `avahi-daemon`
+
+## Estructura ordenada
+La lógica de post-instalación ya no está embebida en `user-data.yaml`; ahora vive en archivos:
+- `/Users/lerix/Projects/sandbox/custom-os/os/install/post-install.sh`
+- `/Users/lerix/Projects/sandbox/custom-os/os/install/generate-specs-json.sh`
+- `/Users/lerix/Projects/sandbox/custom-os/os/install/specs-api.service`
+- `/Users/lerix/Projects/sandbox/custom-os/os/install/nginx-default.conf`
+- `/Users/lerix/Projects/sandbox/custom-os/os/install/llm-https.service`
+- `/Users/lerix/Projects/sandbox/custom-os/os/install/gpu-docker-info.sh`
+
+`autoinstall/user-data.yaml` solo copia `os/` desde NoCloud y ejecuta `post-install.sh`.
 
 ## Storage
 La instalación usa `storage.layout.name: direct` para que Subiquity cree automáticamente la partición de boot correcta según el modo real (UEFI/BIOS) del equipo.

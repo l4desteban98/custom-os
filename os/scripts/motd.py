@@ -6,6 +6,8 @@ import shutil
 import socket
 from datetime import datetime
 
+VERSION = "0.0.1"
+
 # ── ANSI colors ───────────────────────────────────────────────────────────────
 RESET  = "\033[0m"
 BOLD   = "\033[1m"
@@ -97,6 +99,7 @@ def print_banner():
     print(f"  {DIM}Time     : {RESET}{WHITE}{now}{RESET}")
     print(f"  {DIM}Mode     : {RESET}{WHITE}{'DEV' if DEV_MODE else 'PRODUCTION'}{RESET}")
     print()
+    print(f"   Version: {VERSION}")
 
 # ── Self-test output ──────────────────────────────────────────────────────────
 def print_checks():
