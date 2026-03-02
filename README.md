@@ -7,6 +7,8 @@ Este proyecto crea una ISO autoinstall de Ubuntu Server que:
 - detecta NVIDIA en post-install e intenta instalar drivers con `ubuntu-drivers`
 - muestra en cada login un mensaje con estado de NVIDIA y Docker
 - si existe `os/scripts/motd.py`, lo instala y lo usa como MOTD en login
+- anuncia `lerix-llm.local` por mDNS (Avahi)
+- levanta un contenedor `nginx` al arranque que expone specs del host en `https://lerix-llm.local/`
 
 ## Storage
 La instalación usa `storage.layout.name: direct` para que Subiquity cree automáticamente la partición de boot correcta según el modo real (UEFI/BIOS) del equipo.
@@ -50,7 +52,13 @@ packer build -var 'source_iso=/ruta/a/ubuntu-live-server.iso' .
 ```bash
 systemctl status docker --no-pager
 nvidia-smi
+systemctl status specs-api --no-pager
+systemctl status avahi-daemon --no-pager
+curl -sk https://127.0.0.1/
+curl -sk https://lerix-llm.local/
 ```
+
+Nota: el certificado TLS es autofirmado para uso local, así que el navegador mostrará advertencia a menos que confíes ese cert.
 
 En cada login interactivo verás:
 - `NVIDIA GPU detected` o `NVIDIA GPU not detected`

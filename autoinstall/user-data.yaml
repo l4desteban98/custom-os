@@ -6,7 +6,7 @@ autoinstall:
     layout: us
 
   identity:
-    hostname: lerix-node
+    hostname: lerix-llm
     username: lerix
     password: "$6$tSX3J8Oo4ZILqRCW$OS8ZR2.AZDi/AkbNmkc3VvJ0oith1zZ7eHetPR8oukUNtCdFpFi9814Kl2VJrZB5bUzwbKZedfrikDYhl1CAX0"
 
@@ -18,6 +18,10 @@ autoinstall:
     - docker.io
     - pciutils
     - ubuntu-drivers-common
+    - util-linux
+    - avahi-daemon
+    - libnss-mdns
+    - openssl
 
   storage:
     layout:
@@ -25,8 +29,106 @@ autoinstall:
 
   late-commands:
     - mkdir -p /target/opt/abacus-appliance/scripts
+    - mkdir -p /target/opt/abacus-appliance/specs
     - if [ -f /cdrom/nocloud/os/scripts/motd.py ]; then cp /cdrom/nocloud/os/scripts/motd.py /target/opt/abacus-appliance/scripts/motd.py; chmod 0755 /target/opt/abacus-appliance/scripts/motd.py; fi
+    - |
+      cat > /target/usr/local/bin/generate-specs-json.sh <<'SCRIPT'
+      #!/usr/bin/env bash
+      set -euo pipefail
+
+      out="/opt/abacus-appliance/specs/index.json"
+      hostname="$(hostname)"
+      kernel="$(uname -r)"
+      cpu="$(lscpu | awk -F: '/Model name/ {gsub(/^[ \t]+/, "", $2); print $2; exit}')"
+      ram_gb="$(awk '/MemTotal/ {printf "%.2f", $2/1024/1024}' /proc/meminfo)"
+      disk_lines="$(lsblk -dn -o NAME,SIZE,MODEL | sed 's/"/\\"/g' | awk '{printf "{\"name\":\"%s\",\"size\":\"%s\",\"model\":\"", $1, $2; for(i=3;i<=NF;i++) printf "%s%s", $i, (i<NF?" ":""); print "\"}"}' | paste -sd, -)"
+
+      if command -v nvidia-smi >/dev/null 2>&1 && nvidia-smi -L >/dev/null 2>&1; then
+        gpu="$(nvidia-smi --query-gpu=name --format=csv,noheader | head -n1 | sed 's/"/\\"/g')"
+      else
+        gpu="not-detected"
+      fi
+
+      docker_state="inactive"
+      if systemctl is-active --quiet docker; then
+        docker_state="active"
+      fi
+
+      cat > "$out" <<JSON
+      {
+        "hostname": "$hostname",
+        "kernel": "$kernel",
+        "cpu": "$cpu",
+        "ram_gb": "$ram_gb",
+        "gpu": "$gpu",
+        "docker": "$docker_state",
+        "disks": [${disk_lines:-}]
+      }
+      JSON
+      SCRIPT
+    - chmod 0755 /target/usr/local/bin/generate-specs-json.sh
+    - |
+      cat > /target/etc/systemd/system/specs-api.service <<'UNIT'
+      [Unit]
+      Description=Docker Specs API (HTTPS nginx static JSON)
+      After=network-online.target docker.service
+      Wants=network-online.target docker.service
+
+      [Service]
+      Type=simple
+      ExecStartPre=/usr/local/bin/generate-specs-json.sh
+      ExecStartPre=-/usr/bin/docker rm -f specs-api
+      ExecStart=/usr/bin/docker run --name specs-api -p 443:443 -v /opt/abacus-appliance/specs:/usr/share/nginx/html:ro -v /opt/abacus-appliance/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro -v /opt/abacus-appliance/certs:/etc/nginx/certs:ro nginx:alpine
+      ExecStop=/usr/bin/docker stop specs-api
+      Restart=always
+      RestartSec=5
+
+      [Install]
+      WantedBy=multi-user.target
+      UNIT
+    - mkdir -p /target/opt/abacus-appliance/certs
+    - mkdir -p /target/opt/abacus-appliance/nginx
+    - |
+      cat > /target/opt/abacus-appliance/nginx/default.conf <<'CONF'
+      server {
+        listen 443 ssl;
+        server_name lerix-llm.local;
+
+        ssl_certificate     /etc/nginx/certs/tls.crt;
+        ssl_certificate_key /etc/nginx/certs/tls.key;
+
+        location / {
+          root /usr/share/nginx/html;
+          try_files /index.json =404;
+          add_header Content-Type application/json;
+        }
+      }
+      CONF
+    - |
+      curtin in-target -- bash -lc '
+        set -eux
+        openssl req -x509 -nodes -newkey rsa:2048 -days 3650 \
+          -keyout /opt/abacus-appliance/certs/tls.key \
+          -out /opt/abacus-appliance/certs/tls.crt \
+          -subj "/CN=lerix-llm.local" \
+          -addext "subjectAltName=DNS:lerix-llm.local,DNS:lerix-llm"
+      '
+    - mkdir -p /target/etc/avahi/services
+    - |
+      cat > /target/etc/avahi/services/llm-https.service <<'AVAHI'
+      <?xml version="1.0" standalone='no'?><!--*-nxml-*-->
+      <!DOCTYPE service-group SYSTEM "avahi-service.dtd">
+      <service-group>
+        <name replace-wildcards="yes">lerix-llm</name>
+        <service>
+          <type>_https._tcp</type>
+          <port>443</port>
+        </service>
+      </service-group>
+      AVAHI
     - curtin in-target -- bash -lc 'set -eux; systemctl enable docker.service containerd.service; systemctl restart docker.service'
+    - curtin in-target -- bash -lc 'set -eux; systemctl enable specs-api.service'
+    - curtin in-target -- bash -lc 'set -eux; systemctl enable avahi-daemon.service'
     - curtin in-target -- bash -lc 'set -eux; if lspci | grep -qi nvidia; then ubuntu-drivers install; fi'
     - |
       cat > /target/etc/profile.d/90-gpu-docker-info.sh <<'SCRIPT'
