@@ -10,17 +10,26 @@ Este proyecto crea una ISO autoinstall de Ubuntu Server que:
 - anuncia `lerix-llm.local` por mDNS (Avahi)
 - levanta un contenedor `nginx` al arranque que expone specs del host en `https://lerix-llm.local/`
 - fuerza en post-install: hostname `lerix-llm` + instalación/habilitación de `avahi-daemon`
+- ejecuta self-test con `testinfra` usando `specs.yaml`; si falla, no arranca `docker compose`
 
 ## Estructura ordenada
 La lógica de post-instalación ya no está embebida en `user-data.yaml`; ahora vive en archivos:
 - `/Users/lerix/Projects/sandbox/custom-os/os/install/post-install.sh`
 - `/Users/lerix/Projects/sandbox/custom-os/os/install/generate-specs-json.sh`
-- `/Users/lerix/Projects/sandbox/custom-os/os/install/specs-api.service`
 - `/Users/lerix/Projects/sandbox/custom-os/os/install/nginx-default.conf`
 - `/Users/lerix/Projects/sandbox/custom-os/os/install/llm-https.service`
+- `/Users/lerix/Projects/sandbox/custom-os/os/install/avahi-daemon.conf`
 - `/Users/lerix/Projects/sandbox/custom-os/os/install/gpu-docker-info.sh`
+- `/Users/lerix/Projects/sandbox/custom-os/os/selftest/specs.yaml`
+- `/Users/lerix/Projects/sandbox/custom-os/os/selftest/test_selftest.py`
+- `/Users/lerix/Projects/sandbox/custom-os/os/selftest/run_selftest.sh`
+- `/Users/lerix/Projects/sandbox/custom-os/os/systemd/abacus-selftest.service`
+- `/Users/lerix/Projects/sandbox/custom-os/os/systemd/abacus-stack.service`
+- `/Users/lerix/Projects/sandbox/custom-os/os/compose/docker-compose.prod.yml`
 
 `autoinstall/user-data.yaml` solo copia `os/` desde NoCloud y ejecuta `post-install.sh`.
+
+El post-install también aplica `/etc/avahi/avahi-daemon.conf` para que `lerix-llm.local` salga anunciando mDNS desde el primer boot.
 
 ## Storage
 La instalación usa `storage.layout.name: direct` para que Subiquity cree automáticamente la partición de boot correcta según el modo real (UEFI/BIOS) del equipo.
@@ -63,11 +72,13 @@ packer build -var 'source_iso=/ruta/a/ubuntu-live-server.iso' .
 ## Verificación
 ```bash
 systemctl status docker --no-pager
+systemctl status abacus-selftest --no-pager
+systemctl status abacus-stack --no-pager
 nvidia-smi
-systemctl status specs-api --no-pager
 systemctl status avahi-daemon --no-pager
 curl -sk https://127.0.0.1/
 curl -sk https://lerix-llm.local/
+sudo cat /etc/abacus-appliance/specs.yaml
 ```
 
 Nota: el certificado TLS es autofirmado para uso local, así que el navegador mostrará advertencia a menos que confíes ese cert.

@@ -7,6 +7,8 @@ Requires=docker.service abacus-selftest.service
 [Service]
 Type=oneshot
 WorkingDirectory=/opt/abacus-appliance
+ExecStartPre=/usr/local/bin/generate-specs-json.sh
+ExecStartPre=/usr/bin/test -f /opt/abacus-appliance/docker-compose.prod.yml
 ExecStart=/usr/bin/docker compose -f /opt/abacus-appliance/docker-compose.prod.yml up -d
 ExecStop=/usr/bin/docker compose -f /opt/abacus-appliance/docker-compose.prod.yml down
 RemainAfterExit=yes

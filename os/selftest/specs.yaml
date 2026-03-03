@@ -1,0 +1,21 @@
+# Hardware/runtime minimums used by testinfra gating.
+# If these checks fail, abacus-stack.service will not start.
+
+host:
+  min_ram_gb: 16
+  min_root_free_gb: 40
+  required_files:
+    - /etc/abacus-appliance/secrets.env
+    - /etc/abacus-appliance/tls/device.crt
+    - /etc/abacus-appliance/tls/device.key
+
+nvidia:
+  required: true
+  min_vram_gb: 24
+  # Enforce exact target family
+  expected_name_contains: "RTX 4090"
+  # Validates container GPU access via a short CUDA image
+  require_container_gpu: false
+
+services:
+  docker_must_be_running: true

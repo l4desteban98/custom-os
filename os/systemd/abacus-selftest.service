@@ -1,12 +1,12 @@
 [Unit]
-Description=Abacus Self-Test
-After=abacus-init.service
+Description=Abacus Self-Test (testinfra)
+After=abacus-init.service docker.service
 Before=abacus-stack.service
-Requires=abacus-init.service
+Requires=abacus-init.service docker.service
 
 [Service]
 Type=oneshot
-ExecStart=/usr/bin/python3 /opt/abacus-appliance/scripts/selftest.py
+ExecStart=/opt/abacus-appliance/selftest/run_selftest.sh
 StandardOutput=journal
 StandardError=journal
 
